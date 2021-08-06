@@ -7,17 +7,23 @@ import signal
 from threading import Condition
 from clingo import Control, Number, Function
 
+
 class Controller:
     def __init__(self):
         histfile = os.path.join(os.path.expanduser("~"), ".controller")
-        try: readline.read_history_file(histfile)
-        except IOError: pass
+        try:
+            readline.read_history_file(histfile)
+        except IOError:
+            pass
         readline.parse_and_bind('tab: complete')
+
         def complete(commands, text, state):
             matches = []
-            if state == 0: matches = [ c for c in commands if c.startswith(text) ]
+            if state == 0:
+                matches = [c for c in commands if c.startswith(text)]
             return matches[state] if state < len(matches) else None
-        readline.set_completer(lambda text, state: complete(['more_pigeon_please', 'less_pigeon_please', 'solve', 'exit'], text, state))
+        readline.set_completer(lambda text, state: complete(
+            ['more_pigeon_please', 'less_pigeon_please', 'solve', 'exit'], text, state))
         atexit.register(readline.write_history_file, histfile)
         self.solving = False
         self.condition = Condition()
@@ -30,7 +36,8 @@ class Controller:
         self.solver.stop()
 
     def on_finish(self, ret):
-        self.message = "finish: " + str(ret) + (" (INTERRUPTED)" if ret.interrupted else "")
+        self.message = "finish: " + \
+            str(ret) + (" (INTERRUPTED)" if ret.interrupted else "")
         self.condition.acquire()
         self.solving = False
         self.condition.notify()
@@ -50,8 +57,10 @@ class Controller:
         while True:
             signal.signal(signal.SIGINT, pyInt)
             try:
-                try: input_ = raw_input
-                except NameError: input_ = input
+                try:
+                    input_ = raw_input
+                except NameError:
+                    input_ = input
                 line = input_('> ')
                 signal.signal(signal.SIGINT, signal.SIG_IGN)
             except EOFError:
@@ -62,6 +71,7 @@ class Controller:
                 signal.signal(signal.SIGINT, signal.SIG_IGN)
                 print
                 continue
+
             if line == "solve":
                 print("Solving...")
                 self.solving = True
@@ -85,9 +95,10 @@ class Controller:
             else:
                 print("unknown command: " + line)
 
+
 class Solver:
     def __init__(self):
-        self.k   = 0
+        self.k = 0
         self.prg = Control()
         self.prg.load("client.lp")
         self.prg.ground([("pigeon", []), ("sleep",  [Number(self.k)])])
@@ -104,7 +115,8 @@ class Solver:
             self.prg.ground([("sleep", [self.k])])
             self.prg.release_external(Function("sleep", [Number(self.k-1)]))
             self.prg.assign_external(Function("sleep", [Number(self.k)]), True)
-        self.future = self.prg.solve(on_model=self.on_model, on_finish=on_finish, async_=True)
+        self.future = self.prg.solve(
+            on_model=self.on_model, on_finish=on_finish, async_=True)
 
     def stop(self):
         self.future.cancel()
@@ -116,8 +128,8 @@ class Solver:
     def set_more_pigeon(self, more):
         self.prg.assign_external(Function("p"), more)
 
+
 st = Solver()
 ct = Controller()
 ct.register_solver(st)
 ct.run()
-

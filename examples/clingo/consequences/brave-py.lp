@@ -6,9 +6,12 @@ brave = set()
 
 def on_model(m):
     for x in m.symbols(atoms=True):
-        if x.name == "holds": brave.add(x.arguments[0])
+        if x.name == "holds": 
+            brave.add(x.arguments[0])
+            # print(brave)
 
 def is_brave(x):
+    # print(Number(x in brave))
     return Number(x in brave)
 
 def main(prg):
